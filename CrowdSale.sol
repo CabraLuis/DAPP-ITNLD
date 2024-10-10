@@ -56,7 +56,7 @@ contract SimpleCrowdSale {
     event LogInvestment(address indexed investor, uint256 value);
     event LogTokenAssignment(address indexed investor, uint256 numTokens);
 
-    function invest(address _beneficiary) public payable {
+    function invest() public payable {
         require(isValidInvestment(msg.value));
         address investor = msg.sender;
         uint256 investment = msg.value;
@@ -85,12 +85,12 @@ contract SimpleCrowdSale {
     event Refund(address investor, uint256 value);
     function refund() public {
         if(!isRefundedAllowed) revert();
-        address payable investor = payable(msg.sender)
-        uint256 investment = investmentAmountOf(investor);
+        address payable investor = payable(msg.sender);
+        uint256 investment = investmentAmountOf[investor];
         if(investment == 0) revert();
-        investmentAmountOf(investor) = 0;
+        investmentAmountOf[investor] = 0;
         investRefunded += investment;
-        emit Refund(msg.sender.investment);
+        emit Refund(investor, investRefunded);
         if(!investor.send(investment)) revert();
     }
 }
