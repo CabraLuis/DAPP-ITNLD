@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT 
 pragma solidity ^0.8.20;
 
-import './SimpleCoin.sol';
+import "./SimpleCoin.sol";
 
 contract SimpleCrowdSale {
     uint256 public startTime;
@@ -24,18 +24,19 @@ contract SimpleCrowdSale {
     }
 
     constructor (uint256 _startTime, uint256 _endTime, uint256 _weiTokenPrice, uint256 _etherInvestmentObjective) public {
-            require(_startTime >= block.timestamp);
-            require(_endTime >= _startTime);
-            require(_weiTokenPrice != 0);
-            require(_etherInvestmentObjective != 0);
-            startTime = _startTime;
-            endTime = _endTime;
-            weiTokenPrice = _weiTokenPrice;
-            weiInvestmentObjective = _etherInvestmentObjective * 1000000000000000000;
-            crowdSaleToken = new SimpleCoin(0);
-            isFinalized = false;
-            isRefundedAllowed = false;
-            owner = msg.sender;
+            require(_startTime >= block.timestamp, "Start time must be in the future");
+    require(_endTime >= _startTime, "End time must be after start time");
+    require(_weiTokenPrice > 0, "Token price must be greater than zero");
+    require(_etherInvestmentObjective > 0, "Investment objective must be greater than zero");
+    
+    startTime = _startTime;
+    endTime = _endTime;
+    weiTokenPrice = _weiTokenPrice;
+    weiInvestmentObjective = _etherInvestmentObjective * 1 ether; // Use 1 ether for clarity
+    crowdSaleToken = new SimpleCoin(0);
+    isFinalized = false;
+    isRefundedAllowed = false;
+    owner = msg.sender;
         }
 
     function isValidInvestment(uint256 _investment) internal view returns(bool) {
@@ -84,13 +85,16 @@ contract SimpleCrowdSale {
 
     event Refund(address investor, uint256 value);
     function refund() public {
-        if(!isRefundedAllowed) revert();
-        address payable investor = payable(msg.sender);
-        uint256 investment = investmentAmountOf[investor];
-        if(investment == 0) revert();
-        investmentAmountOf[investor] = 0;
-        investRefunded += investment;
-        emit Refund(investor, investRefunded);
-        if(!investor.send(investment)) revert();
+        require(isRefundedAllowed, "Refunds are not allowed");
+    address payable investor = payable(msg.sender);
+    uint256 investment = investmentAmountOf[investor];
+    require(investment > 0, "No investment to refund");
+    
+    investmentAmountOf[investor] = 0;
+    investRefunded += investment;
+    emit Refund(investor, investment);
+
+    (bool success, ) = investor.call{value: investment}("");
+    require(success, "Refund transfer failed");
     }
 }
